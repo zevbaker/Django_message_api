@@ -9,9 +9,11 @@ from rest_framework.permissions import IsAuthenticated
 
 from django.shortcuts import redirect
 
+
 def redirect_view(request):
-    response = redirect('api-token-auth/')
+    response = redirect('/api-token-auth/')
     return response
+
 
 class MessageListView(APIView):
     permission_classes = [IsAuthenticated]
