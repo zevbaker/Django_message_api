@@ -11,12 +11,18 @@ from rest_framework.authtoken.models import Token
 
 
 class CustomAuthToken(ObtainAuthToken):
-    """[summary]
-
-    Args:
-        ObtainAuthToken ([type]): [description]
     """
+    this method returns the user token when
+    the user name and password are sent in the
+    body of the request.
 
+    e.g
+    {
+        "username":"zevbaker",
+        "password":"ab123456"
+    }
+
+    """
     def post(self, request, *args, **kwargs):
         serializer = self.serializer_class(data=request.data,
                                            context={'request': request})
@@ -36,10 +42,11 @@ class MessageListView(APIView):
         """[summary]
 
         Args:
-            request (get): [description]
+            request (get): return all messages that match
+            the user id as sender or receiver
 
         Returns:
-            Response: Json list or
+            Response: Json list
         """
         messages = Message.objects.filter(
             Q(sender_id=request.user.id) | Q(receiver_id=request.user.id))
@@ -47,17 +54,17 @@ class MessageListView(APIView):
         return Response(serializer.data)
 
     def post(self, request):
-        """[summary]
+        """ post new messages if you are the sender
 
         Args:
-            request ([type]): [description]
+            request (post): message json in body
 
         Returns:
-            [type]: [description]
+            Response: message if successful or error otherwise
         """
         data = request.data
         serializer = MessageSerializer(data=data)
-        if serializer.is_valid() and len(data) > 0 and data["sender"] == request.user.id:
+        if serializer.is_valid() and data["sender"] == request.user.id:
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -67,33 +74,73 @@ class MessageDetailView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get_object(self, request, message_id):
+
+        """find message by id where you are the sender or receiver
+
+        Returns:
+            Message | Response: message if found otherwise error
+        """
         try:
             return Message.objects.get(Q(id=message_id) & (Q(sender_id=request.user.id) | Q(receiver_id=request.user.id)))
         except Message.DoesNotExist:
             return Response(status=status.HTTP_404_NOT_FOUND)
 
-    def get(self, request, id):
-        message = self.get_object(request, id)
+    def get(self, request, message_id):
+        """
+        get message and set the isRead field to true
+        if the get request is from the receiver
+
+        Args:
+            request (get): allows access to user details
+            message_id (int): id for finding the message
+
+        Returns:
+            Message | Response: message if found otherwise error
+        """
+        message = self.get_object(request, message_id)
         if(type(message) != Message):
             return message
 
-        message.read()
+        # only read if you are the receiver
+        if(message.receiver_id == request.user.id):
+            message.read()
+
         serializer = MessageSerializer(message)
         return Response(serializer.data)
 
-    def put(self, request, id):
-        message = self.get_object(request, id)
+    def put(self, request, message_id):
+        """
+        updata message if ypu are the sender or receiver
+        and the only changes is to the message contents
+
+        Args:
+            request (put): new data to update the message with
+            message_id (int): id for finding the message
+
+        Returns:
+            Message | Response: message if update was successful otherwise error
+        """
+        message = self.get_object(request, message_id)
         if(type(message) != Message):
             return message
 
-        serializer = MessageSerializer(message, data=request.data)
-        if serializer.is_valid():
-            serializer.save()
+        data = request.data
+        serializer = MessageSerializer(data=data)
+        if serializer.is_valid() and message.valid_update(data):
             return Response(serializer.data, status=status.HTTP_202_ACCEPTED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    def delete(self, request, id):
-        message = self.get_object(request, id)
+    def delete(self, request, message_id):
+        """
+        delete message if ypu are the sender or receiver
+
+        Args:
+            message_id (int): id for finding the message
+
+        Returns:
+            Response: delete successful (204) otherwise error
+        """
+        message = self.get_object(request, message_id)
         if(type(message) != Message):
             return message
 
@@ -104,20 +151,30 @@ class MessageDetailView(APIView):
 class UserMessages(APIView):
     permission_classes = [IsAuthenticated]
 
-    def get(self, request, id):
+    def get(self, request):
+        """
+        returns all messages for the current user
+        and alows filtering by isRead flag in the body of the request
+        by defuult returns all
+
+        Args:
+            request (get): includes access to the user id and body of the request
+
+        Returns:
+            Message | Response: messages if update was successful otherwise error
+        """
         isReadFlag = None
+
         try:
             usersMessages = Message.objects.filter(
-                Q(sender_id=id) | Q(receiver_id=id))
+                Q(sender_id=request.user.id) | Q(receiver_id=request.user.id))
         except Message.DoesNotExist:
-            return Response(status=404)
+            return Response(status=status.HTTP_404_NOT_FOUND)
 
-        if request.method == 'GET':
-            if len(request.body) > 0 and "isRead" in request.body.decode("utf-8"):
-                isReadFlag = JSONParser().parse(request)["isRead"]
-            if isReadFlag is not None:
+        if "isRead" in request.body.decode("utf-8"):
+            isReadFlag = JSONParser().parse(request)["isRead"]
+            if type(isReadFlag) is bool:
                 usersMessages = usersMessages.filter(Q(isRead=isReadFlag))
-            serializer = MessageSerializer(usersMessages, many=True)
-            return Response(serializer.data)
 
-        return Response(status=status.HTTP_404_NOT_FOUND)
+        serializer = MessageSerializer(usersMessages, many=True)
+        return Response(serializer.data)

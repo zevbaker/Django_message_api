@@ -42,5 +42,13 @@ class Message(models.Model):
         self.isRead = True
         self.save()
 
+    def valid_update(self, newMessage):
+        if(self.sender_id == newMessage["sender"] and self.receiver_id == newMessage["receiver"]):
+            self.body = newMessage["body"]
+            self.subject = newMessage["subject"]
+            self.save()
+            return True
+        return False
+
     def __str__(self):
         return f'{self.date} {self.sender} -> {self.receiver} :subject : {self.subject}, body : {self.body}'
