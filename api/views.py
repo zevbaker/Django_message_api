@@ -7,6 +7,11 @@ from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 
+from django.shortcuts import redirect
+
+def redirect_view(request):
+    response = redirect('/redirect-success/')
+    return response
 
 class MessageListView(APIView):
     permission_classes = [IsAuthenticated]
