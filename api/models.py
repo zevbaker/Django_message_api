@@ -7,11 +7,26 @@ from rest_framework.authtoken.models import Token
 
 @receiver(post_save, sender=User)
 def create_auth_token(sender, instance=None, created=False, **kwargs):
+    """[summary]
+
+    Args:
+        sender ([type]): [description]
+        instance ([type], optional): [description]. Defaults to None.
+        created (bool, optional): [description]. Defaults to False.
+    """
     if created:
         Token.objects.create(user=instance)
 
 
 class Message(models.Model):
+    """[summary]
+
+    Args:
+        models ([type]): [description]
+
+    Returns:
+        [type]: [description]
+    """
     sender = models.ForeignKey(
         User, on_delete=models.CASCADE, related_name='Message_sender')
     receiver = models.ForeignKey(

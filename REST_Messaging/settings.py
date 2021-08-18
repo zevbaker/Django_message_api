@@ -16,7 +16,7 @@ SECRET_KEY = 'django-insecure-!1&90!74g$hdhikxhd1alh(a@tg$3hv_ex#0(tu!0dd)81x^ar
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['django-message-api.herokuapp.com']
+ALLOWED_HOSTS = ['django-message-api.herokuapp.com', '127.0.0.1']
 
 
 INSTALLED_APPS = [
