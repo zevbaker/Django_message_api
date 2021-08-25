@@ -1,5 +1,6 @@
 from rest_framework.parsers import JSONParser
-from .models import Message
+from .models import Message, UserMessages
+from .models import UserMessages as UserMessagesModel
 from .serializers import MessageSerializer
 from django.db.models import Q
 from rest_framework.response import Response
@@ -48,8 +49,8 @@ class MessageListView(APIView):
         Returns:
             Response: Json list
         """
-        messages = Message.objects.filter(
-            Q(sender_id=request.user.id) | Q(receiver_id=request.user.id))
+
+        messages = UserMessagesModel.get_user_messages(request.user.id)
         serializer = MessageSerializer(messages, many=True)
         return Response(serializer.data)
 
@@ -80,10 +81,8 @@ class MessageDetailView(APIView):
         Returns:
             Message | Response: message if found otherwise error
         """
-        try:
-            return Message.objects.get(Q(id=message_id) & (Q(sender_id=request.user.id) | Q(receiver_id=request.user.id)))
-        except Message.DoesNotExist:
-            return Response(status=status.HTTP_404_NOT_FOUND)
+
+        return UserMessagesModel.get_one_message_or_404(request.user.id,message_id)
 
     def get(self, request, message_id):
         """
@@ -144,7 +143,7 @@ class MessageDetailView(APIView):
         if(type(message) != Message):
             return message
 
-        message.delete()
+        message.delete(request.user.id)
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
@@ -166,8 +165,7 @@ class UserMessages(APIView):
         isReadFlag = None
 
         try:
-            usersMessages = Message.objects.filter(
-                Q(sender_id=request.user.id) | Q(receiver_id=request.user.id))
+            usersMessages = UserMessagesModel.get_user_messages(request.user.id)
         except Message.DoesNotExist:
             return Response(status=status.HTTP_404_NOT_FOUND)
 
