@@ -13,6 +13,7 @@ from rest_framework import status
 def create_auth_token(sender, instance=None, created=False, **kwargs):
     if created:
         Token.objects.create(user=instance)
+        UserMessages.objects.create(user=instance)
 
 
 class Message(models.Model):
