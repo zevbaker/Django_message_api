@@ -41,8 +41,8 @@ class Message(models.Model):
         return False
 
     def delete(self, user):
-        test = UserMessages.objects.get(user=user).messages.remove(self)
-        print(test)
+        UserMessages.objects.get(user=user).messages.remove(self)
+
 
     def __str__(self):
         return f'{self.date} {self.sender} -> {self.receiver} :subject : {self.subject}, body : {self.body}'
@@ -57,14 +57,6 @@ class UserMessages(models.Model):
     @receiver(post_save, sender=Message)
     def add_new_message(sender, instance=None, created=False, **kwargs):
         if created:
-            # # print(sender.Message_sender)
-            # # field_sender = 'sender'
-            # # field_receiver = 'receiver'
-            # # obj = Message.objects.first()
-            # # field_sender = Message._meta.get_field(field_sender)
-            # # field_receiver = Message._meta.get_field(field_receiver)
-            # # field_value_sender = field_sender.value_from_object(obj)
-            # # field_value_receiver = field_receiver.value_from_object(obj)
 
             senders_messages = UserMessages.objects.get(user=User.objects.get(id=instance.sender_id))
             receiver_messages = UserMessages.objects.get(user=User.objects.get(id=instance.receiver_id))
